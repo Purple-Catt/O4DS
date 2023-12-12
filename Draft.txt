@@ -1,0 +1,6 @@
+FirstLayer need a fixed (aka non-trainable) random weights matrix, so a random Normal one has been chosen.
+The seed parameter has been set to 1 to keep the matrix values the same each time.
+----------
+Even if there's a slight difference between the sigmoid function and the hyperbolic tangent function,
+the choice leads to the latter due to its less susceptibility to the vanishing gradient problem.
+The kernel (weights) initializer chosen is the Normalized Xavier. (https://proceedings.mlr.press/v9/glorot10a.html)
