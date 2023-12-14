@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.random import standard_normal, uniform, seed
+from optimizers import MGD
 
 # Set a random seed for replicability purposes
 seed(5)
@@ -13,7 +14,7 @@ class Layer:
         - *input_dim*: the number of input units (neurons) of the layer
         - *output_dim*: the number of output units
         - *weight_initializer*: *str* between 'std' for Standard Normal or 'xavier' for Normalized Xavier
-        - *activation*: *str* to choose between 'tanh', for hyperbolic tangent or 'sigm' for sigmoidal function. Default is *None*, so no activation function is used."""
+        - *activation*: *str* between 'tanh' for hyperbolic tangent or 'sigm' for sigmoidal function. Default is *None*, so no activation function is used."""
 
         self.name = name
         if weight_initializer == "std":
@@ -43,17 +44,18 @@ class Layer:
 
         return self.output
 
-    def weights_update(self, loss, optimizer, learning_rate: float, **kwargs):
+    def weights_update(self, gradient, optimizer, learning_rate: float, **kwargs):
         params = kwargs
         if self.trainable:
             if self.activation is None:
-                weights_error = np.dot(self.inputs.T, loss)
 
-                if self.prev_weight is None:
-                    self.prev_weight = self.weight.copy()
+                if optimizer == MGD:
 
-                params["prev_weight"] = self.prev_weight
-                self.weight, self.prev_weight = optimizer(gradient=weights_error,
+                    if self.prev_weight is None:
+                        self.prev_weight = self.weight.copy()
+
+                    params["prev_weight"] = self.prev_weight
+                self.weight, self.prev_weight = optimizer(gradient=gradient,
                                                           weight=self.weight,
                                                           learning_rate=learning_rate,
                                                           **params)

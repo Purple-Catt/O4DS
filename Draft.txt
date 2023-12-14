@@ -1,6 +1,14 @@
 FirstLayer need a fixed (aka non-trainable) random weights matrix, so a random Normal one has been chosen.
-The seed parameter has been set to 1 to keep the matrix values the same each time.
+The seed parameter has been set to keep the matrix values the same each time.
 ----------
 Even if there's a slight difference between the sigmoid function and the hyperbolic tangent function,
 the choice leads to the latter due to its less susceptibility to the vanishing gradient problem.
 The kernel (weights) initializer chosen is the Normalized Xavier. (https://proceedings.mlr.press/v9/glorot10a.html)
+
+The main structure of the NN is the same for every dataset but some parameters, like the number of units or the output
+dimentsion, obviously need to be changed every time in order to fit the dataset features.
+
+NEEDS TO ADD THE HISTORY LOSSES IN THE FIT FUNCTION OF THE NETWORK CLASS
+
+The L1 regularization term is not differentiable at zero, which poses challenges in optimization. However,
+subgradient methods can effectively optimize the loss function with L1 regularization.

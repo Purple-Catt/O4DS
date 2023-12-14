@@ -11,21 +11,23 @@ def l1_regularizer(x, l1: float):
     return penalty
 
 
-def mse(y_true, y_pred, lasso: float = None, prime: bool = False):
-    """Compute the Mean Square Error. If *prime* is True, compute the first derivative of the MSE."""
-    if prime:
-        if lasso is not None:
-            y_pred += l1_regularizer(y_pred, l1=lasso)
-
-        loss = 2 * (y_pred - y_true) / y_true.size
+def mse(y_true, y_pred, weight, lasso: float = None):
+    """Compute the Mean Square Error with an optional L1 regularization term, if given."""
+    if lasso is not None:
+        reg = l1_regularizer(weight, l1=lasso)
+        loss = 0.5 * np.sum(np.add(np.power(y_true - y_pred, 2), reg))
 
     else:
-        if lasso is not None:
-            y_pred += l1_regularizer(y_pred, l1=lasso)
-
-        loss = np.mean(np.power(y_true - y_pred, 2))
+        loss = 0.5 * np.sum(np.power(y_true - y_pred, 2))
 
     return loss
+
+
+def gradient(y_true, y_pred, weight, inputs, lasso: float = 0.0):
+    matr = np.matmul(inputs.T, (y_pred - y_true))
+    grad = np.where(weight < 0, matr - lasso, matr + lasso)
+
+    return grad
 
 
 def tanh(x, prime: bool = False):
@@ -50,8 +52,7 @@ def sigmoid(x, prime: bool = False):
 
 
 def splitting_function(x: np.array, y: np.array, train: float, val: float = 0.0):
-    """UNUSED\n
-    Split the given numpy arrays into train, test and eventually validation sets."""
+    """Split the given numpy arrays into train, test and eventually validation sets."""
     n = len(x)
     x_train = x[:int(n * (train - val))]
     y_train = y[:int(n * (train - val))]
