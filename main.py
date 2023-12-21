@@ -1,5 +1,3 @@
-import numpy as np
-from layers import *
 from functions import *
 from optimizers import *
 from network import ELM
@@ -29,4 +27,14 @@ if __name__ == "__main__":
 
     x_train, y_train, x_test, y_test = datasets.get_mnist()
 
-    elm.fit(x_train[:1000], y_train[:1000], x_test[:200], y_test[:200], epochs=5000, optimizer=MGD, lasso=0.0001, learning_rate=0.0001, momentum=0.8)
+    history = elm.fit(x_train, y_train,
+                      x_test, y_test,
+                      epochs=100,
+                      optimizer=MGD,
+                      lasso=0.0001,
+                      learning_rate=0.0001,
+                      history=True,
+                      patience=3,
+                      momentum=0.8)
+
+    learning_curve(history=history)

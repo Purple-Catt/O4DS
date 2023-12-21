@@ -23,15 +23,33 @@ class ELM:
         return np.array(result, dtype=np.float64)
 
     def fit(self, x: np.array, y: np.array, x_test: np.array, y_test: np.array,
-            epochs: int, optimizer, lasso, learning_rate, **kwargs):
+            epochs: int, optimizer, lasso, learning_rate, history: bool = True, patience: int = None, **kwargs):
         """This is the main method of this class, it computes the entire training process with an *online learning*
         method and validate it on the test set.\n
         Despite other high-level libraries, such as Keras or Pytorch, implement a validation spit method so has to have
         training, validation and test sets, it has been decided not to do that here because the nature of the project
-        doesn't require it, so it's a better choice to keep as many observations as possible for the training set."""
+        doesn't require it, so it's a better choice to keep as many observations as possible for the training set.
+            Parameters:
+                *x, y* → numpy arrays containing respectively the training set and the target values for it.\n
+                *x_test, y_test* → numpy arrays containing respectively the test set and the target values for it.\n
+                *epochs* → maximum number of epochs used to train the model.\n
+                *optimizer* → optimizer function used to minimize the loss in the training process.\n
+                *lasso* → value of lambda for the LASSO regularizer from the range (0.0, 1.0).\n
+                *learning_rate* → value of eta given to the optimizer.\n
+                *history* → if True a history dictionary containing all the (training and validation) loss values and
+                epochs is returned.\n
+                *patience* → Default *None*. If a value is given, an earlystopping callback is added with the given
+                parameter.
+        """
+        err_tr_list = []
+        err_val_list = []
+        count = 0
+        act_epoch = 0
+        prev_error = np.inf
         samples = len(x)
         for epoch in range(epochs):
             start_time = time.time()
+            act_epoch += 1
             err_tr = 0
             for sample in range(samples):
                 # Forward propagation
@@ -70,7 +88,26 @@ class ELM:
                                      lasso=lasso)
 
             err_val /= val_samples
-
             err_tr /= samples
+            err_tr_list.append(err_tr)
+            err_val_list.append(err_val)
             print("epoch %d/%d   train_error=%f   val_error=%f   time: %.3f s" % (epoch + 1, epochs, err_tr,
                                                                                   err_val, time.time()-start_time))
+
+            # Early stopping
+            if patience is not None:
+                if err_val >= prev_error:
+                    count += 1
+
+                if count == patience:
+                    print(f"EarlyStopping intervened on epoch {epoch}")
+                    break
+
+                prev_error = err_val
+
+        if history:
+            return dict(
+                val_loss=err_val_list,
+                loss=err_tr_list,
+                epochs=act_epoch
+            )

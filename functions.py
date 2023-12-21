@@ -1,7 +1,7 @@
-import numpy as np
 from layers import Layer
 from network import ELM
 from optimizers import *
+import matplotlib.pyplot as plt
 
 
 def l1_regularizer(x, l1: float):
@@ -66,6 +66,14 @@ def splitting_function(x: np.array, y: np.array, train: float, val: float = 0.0)
         return x_train, y_train, x_test, y_test
 
 
+def learning_curve(history: dict):
+    plt.plot(range(history["epochs"]), history["val_loss"], "b-", label="Validation loss")
+    plt.plot(range(history["epochs"]), history["loss"], "r-", label="Train loss")
+    plt.title("Learning curve")
+    plt.legend()
+    plt.show()
+
+
 def get_model(input_dim: int, mid_dim: int, output_dim: int):
     elm = ELM(
         layers=[
@@ -89,17 +97,4 @@ def get_model(input_dim: int, mid_dim: int, output_dim: int):
 
 def gridsearch_mgd(x_train, y_train, x_test, y_test):
     """IT STILL NEEDS TO BE IMPLEMENTED"""
-    learning_rate = np.arange(start=0.008, stop=0.016, step=0.002)
-    learning_rate = [float(round(i, 4)) for i in list(learning_rate)]
-
-    momentum = np.arange(start=0.5, stop=1, step=0.1)
-    momentum = [float(round(i, 1)) for i in list(momentum)]
-
-    lasso = np.arange(start=0.0001, stop=0.001, step=0.0002)
-    lasso = [float(round(i, 4)) for i in list(lasso)]
-
-    for lr in learning_rate:
-        for m in momentum:
-            for l1 in lasso:
-                model = get_model(input_dim=28*28, mid_dim=100, output_dim=10)
-                model.fit(x_train, y_train, epochs=100, optimizer=MGD, lasso=l1, learning_rate=lr, momentum=m)
+    pass
