@@ -8,3 +8,7 @@ def MGD(gradient, weight, learning_rate: float, **kwargs):
     new_weight = np.add(np.subtract(weight, (learning_rate * gradient)), (momentum * np.subtract(weight, prev_weight)))
 
     return new_weight, weight
+
+
+def DSG():
+    pass

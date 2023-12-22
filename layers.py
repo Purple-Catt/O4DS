@@ -1,6 +1,6 @@
 import numpy as np
-from numpy.random import standard_normal, uniform, seed
-from optimizers import MGD
+from numpy.random import standard_normal, normal, uniform, seed
+from optimizers import MGD, DSG
 
 # Set a random seed for replicability purposes
 seed(5)
@@ -11,10 +11,12 @@ class Layer:
     def __init__(self, name: str, input_dim: int, output_dim: int,
                  weight_initializer: str, activation=None, trainable: bool = False):
         """Parameters:\n
-        - *input_dim*: the number of input units (neurons) of the layer
-        - *output_dim*: the number of output units
-        - *weight_initializer*: *str* between 'std' for Standard Normal or 'xavier' for Normalized Xavier
-        - *activation*: *str* between 'tanh' for hyperbolic tangent or 'sigm' for sigmoidal function. Default is *None*, so no activation function is used."""
+            *input_dim*: the number of input units (neurons) of the layer\n
+            *output_dim*: the number of output units\n
+            *weight_initializer*: *str* between 'std' for Standard Normal, 'xavier' for Normalized Xavier
+            or 'he' for He Normal.\n
+            *activation*: *str* between 'tanh' for hyperbolic tangent or 'sigm' for sigmoidal function. Default is
+            *None*, so no activation function is used."""
 
         self.name = name
         if weight_initializer == "std":
@@ -22,6 +24,8 @@ class Layer:
         elif weight_initializer == "xavier":
             bound = (np.sqrt(6)/np.sqrt(input_dim + output_dim))
             self.weight = uniform(low=-bound, high=bound, size=(input_dim, output_dim))
+        elif weight_initializer == "he":
+            self.weight = normal(loc=0.0, scale=np.sqrt(2 / input_dim), size=(input_dim, output_dim))
         else:
             raise ValueError(f"*str* between 'std' and 'xavier' expected, got {weight_initializer} instead.")
 
@@ -55,10 +59,16 @@ class Layer:
                         self.prev_weight = self.weight.copy()
 
                     params["prev_weight"] = self.prev_weight
-                self.weight, self.prev_weight = optimizer(gradient=gradient,
-                                                          weight=self.weight,
-                                                          learning_rate=learning_rate,
-                                                          **params)
+                    self.weight, self.prev_weight = optimizer(gradient=gradient,
+                                                              weight=self.weight,
+                                                              learning_rate=learning_rate,
+                                                              **params)
+
+                elif optimizer == DSG:
+                    pass
+
+                else:
+                    raise ValueError(f"One between MGD and DSG expected, got {optimizer} instead.")
 
             else:
                 raise NotImplementedError("The backpropagation algorithm for trainable layers hasn't been "

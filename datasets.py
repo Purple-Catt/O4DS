@@ -70,3 +70,16 @@ def get_covertype():
     y_test = to_categorical(y_test)
 
     return x_train, y_train, x_test, y_test
+
+
+def get_dim(name: str):
+    if name == "mnist":
+        return 784, 1568, 10
+    elif name == "cifar10":
+        return 3072, 6144, 10
+    elif name == "cifar100":
+        return 3072, 6144, 100
+    elif name == "covertype":
+        return 54, 108, 7
+    else:
+        raise ValueError(f"*str* between 'mnist', 'cifar10', 'cifar100', 'covertype' expected, got {name} instead.")

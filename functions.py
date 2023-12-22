@@ -1,3 +1,5 @@
+import numpy as np
+
 from layers import Layer
 from network import ELM
 from optimizers import *
@@ -30,25 +32,31 @@ def gradient(y_true, y_pred, weight, inputs, lasso: float = 0.0):
     return grad
 
 
-def tanh(x, prime: bool = False):
-
+def relu(x, prime: bool = False):
+    """Compute the ReLU activation function. if *prime* is True, compute the first derivative."""
     if prime:
-        res = 1 - (np.tanh(x) ** 2)
+        return np.greater(x, 0).astype(int)
 
     else:
-        res = np.tanh(x)
+        return np.maximum(0, x)
 
-    return res
+
+def tanh(x, prime: bool = False):
+    """Compute the tanh activation function. if *prime* is True, compute the first derivative."""
+    if prime:
+        return 1 - (np.tanh(x) ** 2)
+
+    else:
+        return np.tanh(x)
 
 
 def sigmoid(x, prime: bool = False):
     """Compute the sigmoid activation function. If *prime* is True, compute the first derivative."""
     if prime:
-        res = (1 / (1 + np.exp(- x))) * (1 - (1 / (1 + np.exp(- x))))
-    else:
-        res = 1 / (1 + np.exp(- x))
+        return (1 / (1 + np.exp(- x))) * (1 - (1 / (1 + np.exp(- x))))
 
-    return res
+    else:
+        return 1 / (1 + np.exp(- x))
 
 
 def splitting_function(x: np.array, y: np.array, train: float, val: float = 0.0):
