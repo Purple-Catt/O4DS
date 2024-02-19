@@ -1,5 +1,3 @@
-import numpy as np
-
 from layers import Layer
 from network import ELM
 from optimizers import *
@@ -7,7 +5,7 @@ import matplotlib.pyplot as plt
 
 
 def l1_regularizer(x, l1: float):
-    """Return the LASSO regularizer given a layer output."""
+    """Return the LASSO regularizer given a layer _output."""
     penalty = l1 * np.sum(np.abs(x))
 
     return penalty
@@ -25,15 +23,16 @@ def mse(y_true, y_pred, weight, lasso: float = None):
     return loss
 
 
-def gradient(y_true, y_pred, weight, inputs, lasso: float = 0.0):
+def gradient(y_true, y_pred, weight, inputs, lasso: float = 0.0, subgradient: bool = False):
     matr = np.matmul(inputs.T, (y_pred - y_true))
     grad = np.where(weight < 0, matr - lasso, matr + lasso)
+    grad = np.where(weight == 0, matr, grad)
 
     return grad
 
 
 def relu(x, prime: bool = False):
-    """Compute the ReLU activation function. if *prime* is True, compute the first derivative."""
+    """Compute the ReLU _activation function. If *prime* is True, compute the first derivative."""
     if prime:
         return np.greater(x, 0).astype(int)
 
@@ -41,8 +40,17 @@ def relu(x, prime: bool = False):
         return np.maximum(0, x)
 
 
+def softplus(x, prime: bool = False):
+    """Compute the Softplus _activation function. If *prime* is True, compute the first derivative."""
+    if prime:
+        return 1 / (1 + np.exp(- x))
+
+    else:
+        return np.log(1 + np.exp(x))
+
+
 def tanh(x, prime: bool = False):
-    """Compute the tanh activation function. if *prime* is True, compute the first derivative."""
+    """Compute the tanh _activation function. If *prime* is True, compute the first derivative."""
     if prime:
         return 1 - (np.tanh(x) ** 2)
 
@@ -51,7 +59,7 @@ def tanh(x, prime: bool = False):
 
 
 def sigmoid(x, prime: bool = False):
-    """Compute the sigmoid activation function. If *prime* is True, compute the first derivative."""
+    """Compute the sigmoid _activation function. If *prime* is True, compute the first derivative."""
     if prime:
         return (1 / (1 + np.exp(- x))) * (1 - (1 / (1 + np.exp(- x))))
 
@@ -74,12 +82,19 @@ def splitting_function(x: np.array, y: np.array, train: float, val: float = 0.0)
         return x_train, y_train, x_test, y_test
 
 
-def learning_curve(history: dict):
+def learning_curve(history: dict, save: bool = False, path: str = None):
     plt.plot(range(history["epochs"]), history["val_loss"], "b-", label="Validation loss")
     plt.plot(range(history["epochs"]), history["loss"], "r-", label="Train loss")
-    plt.title("Learning curve")
+    loss = history["val_loss"][-1]
+    plt.title(f"Learning curve-val_loss={round(loss, 5)}")
     plt.legend()
-    plt.show()
+    if save:
+        plt.savefig(path)
+        plt.clf()
+
+    else:
+        plt.show()
+        plt.clf()
 
 
 def get_model(input_dim: int, mid_dim: int, output_dim: int):
@@ -91,7 +106,7 @@ def get_model(input_dim: int, mid_dim: int, output_dim: int):
                   weight_initializer="std",
                   activation=tanh,
                   trainable=False),
-            Layer(name="output",
+            Layer(name="_output",
                   input_dim=mid_dim,
                   output_dim=output_dim,
                   weight_initializer="xavier",
@@ -103,6 +118,59 @@ def get_model(input_dim: int, mid_dim: int, output_dim: int):
     return elm
 
 
-def gridsearch_mgd(x_train, y_train, x_test, y_test):
-    """IT STILL NEEDS TO BE IMPLEMENTED"""
-    pass
+def gridsearch_mgd(x_train: np.ndarray,
+                   y_train: np.ndarray,
+                   x_test: np.ndarray,
+                   y_test: np.ndarray,
+                   input_dim: int,
+                   mid_dim: int,
+                   output_dim: int,
+                   epochs: int = 50,
+                   patience: int = 5):
+    evaluation = []
+    learning_rate = np.arange(start=0.00001, stop=0.00002, step=0.00005)
+    learning_rate = [float(round(i, 6)) for i in list(learning_rate)]
+
+    momentum = np.arange(start=0.8, stop=1.0, step=0.1)
+    momentum = [float(round(i, 1)) for i in list(momentum)]
+    momentum = [0.8]
+
+    lmb = np.arange(start=0.000001, stop=0.000003, step=0.000002)
+    lmb = [float(round(i, 6)) for i in list(lmb)]
+
+    for lr in learning_rate:
+        for mom in momentum:
+            for lasso in lmb:
+                model = get_model(input_dim=input_dim, mid_dim=mid_dim, output_dim=output_dim)
+
+                history = model.fit(x_train, y_train,
+                                    x_test, y_test,
+                                    epochs=epochs,
+                                    optimizer=MGD,
+                                    lasso=lasso,
+                                    learning_rate=lr,
+                                    history=True,
+                                    patience=patience,
+                                    verbose=1,
+                                    momentum=mom)
+
+                metrics = dict(learning_rate=lr,
+                               momentum=mom,
+                               lmb=lasso,
+                               val_loss=history["val_loss"][-1],
+                               train_loss=history["loss"][-1])
+                evaluation.append(metrics)
+                learning_curve(history, save=False, path=f"Plots\\MGD\\{lr}_{mom}_{lasso}.png")
+
+                vl = history["val_loss"][-1]
+                trl = history["loss"][-1]
+                print(f"Tested model --> alpha={lr}, Beta={mom}, L1={lasso}, Val_loss={vl}, train_loss={trl}")
+
+    print("Evaluating best model...")
+    best = 10000
+    for mod in evaluation:
+        if mod["val_loss"] < best:
+            best = mod["val_loss"]
+            bestm = mod
+
+    print(f"Best model: {bestm}")

@@ -1,2 +1,0 @@
-The L1 regularization term is not differentiable at zero, which poses challenges in optimization. However,
-subgradient methods can effectively optimize the loss function with L1 regularization.
