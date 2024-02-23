@@ -1,4 +1,3 @@
-import numpy as np
 from numpy import matmul
 from numpy.random import standard_normal, normal, uniform, seed
 from optimizers import *

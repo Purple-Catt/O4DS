@@ -23,7 +23,7 @@ def mse(y_true, y_pred, weight, lasso: float = None):
     return loss
 
 
-def gradient(y_true, y_pred, weight, inputs, lasso: float = 0.0, subgradient: bool = False):
+def gradient(y_true, y_pred, weight, inputs, lasso: float = 0.0):
     matr = np.matmul(inputs.T, (y_pred - y_true))
     grad = np.where(weight < 0, matr - lasso, matr + lasso)
     grad = np.where(weight == 0, matr, grad)
@@ -118,29 +118,121 @@ def get_model(input_dim: int, mid_dim: int, output_dim: int):
     return elm
 
 
-def gridsearch_mgd(x_train: np.ndarray,
-                   y_train: np.ndarray,
-                   x_test: np.ndarray,
-                   y_test: np.ndarray,
-                   input_dim: int,
-                   mid_dim: int,
-                   output_dim: int,
-                   epochs: int = 50,
-                   patience: int = 5):
+def gridsearch(x_train: np.ndarray,
+               y_train: np.ndarray,
+               x_test: np.ndarray,
+               y_test: np.ndarray,
+               input_dim: int,
+               output_dim: int,
+               epochs: int = 100,
+               patience: int = 100,
+               gs_type: str = "architecture",
+               **kwargs):
+    """This function compute the gridsearch over the given model to find the optimal parameters. The specific kind of
+    parameters to optimize can be decided.
+    Parameters:\n
+        *x_train, y_train*: numpy arrays containing respectively the training set and the target values for it.\n
+        *x_test, y_test*: numpy arrays containing respectively the test set and the target values for it.\n
+        *input_dim*: the number of input units (neurons) of the layer\n
+        *output_dim*: the number of _output units\n
+        *epochs*: Default 100. Maximum number of epochs used to train the model.\n
+        *patience*: Default 100. If a value is given, an earlystopping callback is added with the given parameter.\n
+        *gs_type*: Default 'architecture'. String between 'architecture', 'lasso', 'mgd and 'dsg' that specifies the
+        type of gridsearch to run. 'architecture' is used for finding the best number of units, 'lasso' for the l1
+        penalty term, 'mgd' and 'dsg' respectively for the Momentum Gradient Descent and Deflected SubGradient
+        algorithm optimal parameters' selection.
+        *kwargs*: it's used to define all the necessary parameters for each type of gridsearch, in particular, for
+        'architecture' the 'learning_rate', 'momentum' and 'lasso' are needed, for 'lasso' 'mid_mid', 'learning_rate'
+        and 'momentum and for the algorithms 'mgd' and 'dsg' 'lasso' and 'mid_dim'.
+        Considering the use of this function, the definition of ranges and stepsizes needs to be done directly here,
+        modifying the values into the function, to keep the implementation as practical as possible."""
     evaluation = []
-    learning_rate = np.arange(start=0.00001, stop=0.00002, step=0.00005)
-    learning_rate = [float(round(i, 6)) for i in list(learning_rate)]
 
-    momentum = np.arange(start=0.8, stop=1.0, step=0.1)
-    momentum = [float(round(i, 1)) for i in list(momentum)]
-    momentum = [0.8]
+    if gs_type == "architecture":
+        lasso = kwargs.get("lasso")
+        lr = kwargs.get("learning_rate")
+        mom = kwargs.get("momentum")
 
-    lmb = np.arange(start=0.000001, stop=0.000003, step=0.000002)
-    lmb = [float(round(i, 6)) for i in list(lmb)]
+        multiplier = np.arange(start=2, stop=20, step=2)
+        multiplier = [int(i) for i in list(multiplier)]
 
-    for lr in learning_rate:
-        for mom in momentum:
-            for lasso in lmb:
+        n_comb = len(multiplier)
+        print(f"{n_comb} parameters combinations needed to compute the gridsearch")
+
+        for mul in multiplier:
+            mid_dim = input_dim * mul
+            model = get_model(input_dim=input_dim, mid_dim=mid_dim, output_dim=output_dim)
+
+            history = model.fit(x_train, y_train,
+                                x_test, y_test,
+                                epochs=epochs,
+                                optimizer=MGD,
+                                lasso=lasso,
+                                learning_rate=lr,
+                                history=True,
+                                patience=patience,
+                                verbose=0,
+                                momentum=mom)
+
+            metrics = dict(multiplier=mul,
+                           val_loss=history["val_loss"][-1],
+                           train_loss=history["loss"][-1])
+            evaluation.append(metrics)
+            learning_curve(history, save=True, path=f"Plots\\Architecture\\{mul}.png")
+
+            vl = history["val_loss"][-1]
+            trl = history["loss"][-1]
+            print(f"Tested model --> Multiplier={mul}, Val_loss={vl}, train_loss={trl}")
+
+    elif gs_type == "lasso":
+        mid_dim = kwargs.get("mid_dim")
+        lr = kwargs.get("learning_rate")
+        mom = kwargs.get("momentum")
+
+        lmb = np.arange(start=0.000001, stop=0.0001, step=0.000005)
+        lmb = [float(round(i, 6)) for i in list(lmb)]
+
+        n_comb = len(lmb)
+        print(f"{n_comb} parameters combinations needed to compute the gridsearch")
+
+        for lasso in lmb:
+            model = get_model(input_dim=input_dim, mid_dim=mid_dim, output_dim=output_dim)
+
+            history = model.fit(x_train, y_train,
+                                x_test, y_test,
+                                epochs=epochs,
+                                optimizer=MGD,
+                                lasso=lasso,
+                                learning_rate=lr,
+                                history=True,
+                                patience=patience,
+                                verbose=0,
+                                momentum=mom)
+
+            metrics = dict(lasso=lasso,
+                           val_loss=history["val_loss"][-1],
+                           train_loss=history["loss"][-1])
+            evaluation.append(metrics)
+            learning_curve(history, save=True, path=f"Plots\\LASSO\\{lasso}.png")
+
+            vl = history["val_loss"][-1]
+            trl = history["loss"][-1]
+            print(f"Tested model --> Lasso={lasso}, Val_loss={vl}, train_loss={trl}")
+
+    elif gs_type == "mgd":
+        lasso = kwargs.get("lasso")
+        mid_dim = kwargs.get("mid_dim")
+        learning_rate = np.arange(start=0.1, stop=0.2, step=0.2)
+        learning_rate = [float(round(i, 6)) for i in list(learning_rate)]
+
+        momentum = np.arange(start=0.4, stop=1.0, step=0.1)
+        momentum = [float(round(i, 1)) for i in list(momentum)]
+
+        n_comb = len(learning_rate) * len(momentum)
+        print(f"{n_comb} parameters combinations needed to compute the gridsearch")
+
+        for lr in learning_rate:
+            for mom in momentum:
                 model = get_model(input_dim=input_dim, mid_dim=mid_dim, output_dim=output_dim)
 
                 history = model.fit(x_train, y_train,
@@ -151,20 +243,25 @@ def gridsearch_mgd(x_train: np.ndarray,
                                     learning_rate=lr,
                                     history=True,
                                     patience=patience,
-                                    verbose=1,
+                                    verbose=0,
                                     momentum=mom)
 
                 metrics = dict(learning_rate=lr,
                                momentum=mom,
-                               lmb=lasso,
                                val_loss=history["val_loss"][-1],
                                train_loss=history["loss"][-1])
                 evaluation.append(metrics)
-                learning_curve(history, save=False, path=f"Plots\\MGD\\{lr}_{mom}_{lasso}.png")
+                learning_curve(history, save=True, path=f"Plots\\MGD\\{lr}_{mom}.png")
 
                 vl = history["val_loss"][-1]
                 trl = history["loss"][-1]
-                print(f"Tested model --> alpha={lr}, Beta={mom}, L1={lasso}, Val_loss={vl}, train_loss={trl}")
+                print(f"Tested model --> alpha={lr}, Beta={mom}, Val_loss={vl}, train_loss={trl}")
+
+    elif gs_type == "dsg":
+        pass
+
+    else:
+        raise ValueError(f"String between 'architecture', 'lasso', 'mgd and 'dsg' expected, got {gs_type} instead.")
 
     print("Evaluating best model...")
     best = 10000

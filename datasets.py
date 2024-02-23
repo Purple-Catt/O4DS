@@ -7,6 +7,8 @@ from functions import splitting_function
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
+mult = 10
+
 
 def get_matyas():
     """Return the Matyas function used for testing purposes."""
@@ -24,12 +26,12 @@ def get_matyas():
 def get_mnist():
     """Return the MNIST dataset after some data manipulation to allow a better training of the model."""
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
-    x_train = x_train.reshape(x_train.shape[0], 1, 28 * 28)
+    x_train = x_train.reshape(x_train.shape[0], 1, 784)
     x_train = x_train.astype('float32')
     x_train /= 255
     y_train = to_categorical(y_train)
 
-    x_test = x_test.reshape(x_test.shape[0], 1, 28 * 28)
+    x_test = x_test.reshape(x_test.shape[0], 1, 784)
     x_test = x_test.astype('float32')
     x_test /= 255
     y_test = to_categorical(y_test)
@@ -88,17 +90,17 @@ def get_covertype():
     return x_train, y_train, x_test, y_test
 
 
-def get_dim(name: str):
+def get_dim(name: str, multiplier: int = mult):
     if name == "mnist":
-        return 784, 1568, 10
+        return 784, 784 * multiplier, 10
     elif name == "cifar10":
-        return 3072, 6144, 10
+        return 3072, 3072 * multiplier, 10
     elif name == "cifar100":
-        return 3072, 6144, 100
+        return 3072, 3072 * multiplier, 100
     elif name == "covertype":
-        return 54, 108, 7
+        return 54, 54 * multiplier, 7
     elif name == "matyas":
-        return 2, 4, 1
+        return 2, 2 * multiplier, 1
     else:
         raise ValueError(f"*str* between 'mnist', 'cifar10', 'cifar100', 'covertype', 'matyas' expected, "
                          f"got {name} instead.")

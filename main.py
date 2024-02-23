@@ -28,14 +28,14 @@ if var:
     if grad:
         history = elm.fit(x_train, y_train,
                           x_test, y_test,
-                          epochs=1000,
+                          epochs=400,
                           optimizer=MGD,
-                          lasso=0.0001,
+                          lasso=0.00001,
                           history=True,
                           patience=300,
                           verbose=1,
-                          learning_rate=0.004,
-                          momentum=0.5)
+                          learning_rate=0.0002,
+                          momentum=0.7)
 
     else:
         history = elm.fit(x_train[:1000], y_train[:1000],
@@ -56,4 +56,4 @@ if var:
 
 else:
     gridsearch_mgd(x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test,
-                   input_dim=units, mid_dim=mid_out, output_dim=output_dim)
+                   input_dim=units, output_dim=output_dim, mid_dim=mid_out)
