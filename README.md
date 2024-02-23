@@ -15,4 +15,4 @@ The whole neural network, as well as the training and optimization iterative pro
 
 One of the strenghts of the extreme learning machine (*breviter* ELM) is its extremely fast learning speed. This leads us to implement an **online learning** algorithm, given also the simplicity of its implementation than a **mini-batch** one.
 
-The Python files contain all the necessary parts for the project and their names are self-explanatory of their purpose.
+The Python files contain all the necessary parts for the project and their names are self-explanatory of their purpose. For further information about how classes, methods and functions works please refer to the high-detailed descriptions in the code.
