@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 
 def l1_regularizer(x, l1: float):
-    """Return the LASSO regularizer given a layer _output."""
+    """Return the LASSO regularizer given a layer output."""
     penalty = l1 * np.sum(np.abs(x))
 
     return penalty
@@ -24,6 +24,7 @@ def mse(y_true, y_pred, weight, lasso: float = None):
 
 
 def gradient(y_true, y_pred, weight, inputs, lasso: float = 0.0):
+    """Compute the (sub)gradient."""
     matr = np.matmul(inputs.T, (y_pred - y_true))
     grad = np.where(weight < 0, matr - lasso, matr + lasso)
     grad = np.where(weight == 0, matr, grad)
@@ -32,7 +33,7 @@ def gradient(y_true, y_pred, weight, inputs, lasso: float = 0.0):
 
 
 def relu(x, prime: bool = False):
-    """Compute the ReLU _activation function. If *prime* is True, compute the first derivative."""
+    """Compute the ReLU activation function. If *prime* is True, compute the first derivative."""
     if prime:
         return np.greater(x, 0).astype(int)
 
@@ -41,7 +42,7 @@ def relu(x, prime: bool = False):
 
 
 def softplus(x, prime: bool = False):
-    """Compute the Softplus _activation function. If *prime* is True, compute the first derivative."""
+    """Compute the Softplus activation function. If *prime* is True, compute the first derivative."""
     if prime:
         return 1 / (1 + np.exp(- x))
 
@@ -50,7 +51,7 @@ def softplus(x, prime: bool = False):
 
 
 def tanh(x, prime: bool = False):
-    """Compute the tanh _activation function. If *prime* is True, compute the first derivative."""
+    """Compute the tanh activation function. If *prime* is True, compute the first derivative."""
     if prime:
         return 1 - (np.tanh(x) ** 2)
 
@@ -59,7 +60,7 @@ def tanh(x, prime: bool = False):
 
 
 def sigmoid(x, prime: bool = False):
-    """Compute the sigmoid _activation function. If *prime* is True, compute the first derivative."""
+    """Compute the sigmoid activation function. If *prime* is True, compute the first derivative."""
     if prime:
         return (1 / (1 + np.exp(- x))) * (1 - (1 / (1 + np.exp(- x))))
 
@@ -104,12 +105,12 @@ def get_model(input_dim: int, mid_dim: int, output_dim: int):
                   input_dim=input_dim,
                   output_dim=mid_dim,
                   weight_initializer="std",
-                  activation=tanh,
+                  activation=softplus,
                   trainable=False),
-            Layer(name="_output",
+            Layer(name="output",
                   input_dim=mid_dim,
                   output_dim=output_dim,
-                  weight_initializer="xavier",
+                  weight_initializer="he",
                   trainable=True)
         ],
         loss=mse
@@ -129,8 +130,8 @@ def gridsearch(x_train: np.ndarray,
                gs_type: str = "architecture",
                **kwargs):
     """This function compute the gridsearch over the given model to find the optimal parameters. The specific kind of
-    parameters to optimize can be decided.
-    Parameters:\n
+    parameters to optimize can be decided.\n
+    Parameters
         *x_train, y_train*: numpy arrays containing respectively the training set and the target values for it.\n
         *x_test, y_test*: numpy arrays containing respectively the test set and the target values for it.\n
         *input_dim*: the number of input units (neurons) of the layer\n
@@ -140,12 +141,13 @@ def gridsearch(x_train: np.ndarray,
         *gs_type*: Default 'architecture'. String between 'architecture', 'lasso', 'mgd and 'dsg' that specifies the
         type of gridsearch to run. 'architecture' is used for finding the best number of units, 'lasso' for the l1
         penalty term, 'mgd' and 'dsg' respectively for the Momentum Gradient Descent and Deflected SubGradient
-        algorithm optimal parameters' selection.
+        algorithm optimal parameters' selection.\n
         *kwargs*: it's used to define all the necessary parameters for each type of gridsearch, in particular, for
-        'architecture' the 'learning_rate', 'momentum' and 'lasso' are needed, for 'lasso' 'mid_mid', 'learning_rate'
-        and 'momentum and for the algorithms 'mgd' and 'dsg' 'lasso' and 'mid_dim'.
+        *architecture* the 'learning_rate', 'momentum' and 'lasso' are needed, for *lasso* 'mid_mid', 'learning_rate'
+        and 'momentum' and for the algorithms *mgd* and *dsg* 'lasso' and 'mid_dim'.
         Considering the use of this function, the definition of ranges and stepsizes needs to be done directly here,
-        modifying the values into the function, to keep the implementation as practical as possible."""
+        modifying the values into the function, to keep the implementation as practical as possible.
+    """
     evaluation = []
 
     if gs_type == "architecture":
@@ -168,10 +170,10 @@ def gridsearch(x_train: np.ndarray,
                                 epochs=epochs,
                                 optimizer=MGD,
                                 lasso=lasso,
-                                learning_rate=lr,
                                 history=True,
                                 patience=patience,
-                                verbose=0,
+                                verbose=1,
+                                learning_rate=lr,
                                 momentum=mom)
 
             metrics = dict(multiplier=mul,
@@ -189,8 +191,9 @@ def gridsearch(x_train: np.ndarray,
         lr = kwargs.get("learning_rate")
         mom = kwargs.get("momentum")
 
-        lmb = np.arange(start=0.000001, stop=0.0001, step=0.000005)
-        lmb = [float(round(i, 6)) for i in list(lmb)]
+        lmb = np.arange(start=0.0000001, stop=0.000001, step=0.0000001)
+        lmb = [float(round(i, 8)) for i in list(lmb)]
+        lmb = [0.0000001, 0.000001, 0.00001]
 
         n_comb = len(lmb)
         print(f"{n_comb} parameters combinations needed to compute the gridsearch")
@@ -206,7 +209,7 @@ def gridsearch(x_train: np.ndarray,
                                 learning_rate=lr,
                                 history=True,
                                 patience=patience,
-                                verbose=0,
+                                verbose=1,
                                 momentum=mom)
 
             metrics = dict(lasso=lasso,
@@ -222,8 +225,9 @@ def gridsearch(x_train: np.ndarray,
     elif gs_type == "mgd":
         lasso = kwargs.get("lasso")
         mid_dim = kwargs.get("mid_dim")
-        learning_rate = np.arange(start=0.1, stop=0.2, step=0.2)
-        learning_rate = [float(round(i, 6)) for i in list(learning_rate)]
+        learning_rate = np.arange(start=0.0000001, stop=0.0000002, step=0.0000005)
+        learning_rate = [float(round(i, 8)) for i in list(learning_rate)]
+        learning_rate = [0.0000001]
 
         momentum = np.arange(start=0.4, stop=1.0, step=0.1)
         momentum = [float(round(i, 1)) for i in list(momentum)]
@@ -243,7 +247,7 @@ def gridsearch(x_train: np.ndarray,
                                     learning_rate=lr,
                                     history=True,
                                     patience=patience,
-                                    verbose=0,
+                                    verbose=1,
                                     momentum=mom)
 
                 metrics = dict(learning_rate=lr,
@@ -258,7 +262,7 @@ def gridsearch(x_train: np.ndarray,
                 print(f"Tested model --> alpha={lr}, Beta={mom}, Val_loss={vl}, train_loss={trl}")
 
     elif gs_type == "dsg":
-        pass
+        raise NotImplementedError("GridSearch for DSG algorithm hasn't been implemented yet.")
 
     else:
         raise ValueError(f"String between 'architecture', 'lasso', 'mgd and 'dsg' expected, got {gs_type} instead.")

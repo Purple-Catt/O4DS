@@ -1,13 +1,13 @@
 import numpy as np
-from keras.datasets import mnist, cifar10, cifar100
+from numpy.random import RandomState
+from keras.datasets import mnist
 from keras.utils import to_categorical
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
+import pickle
 from functions import splitting_function
-import ssl
-ssl._create_default_https_context = ssl._create_unverified_context
 
-mult = 10
+mult = 2
 
 
 def get_matyas():
@@ -23,9 +23,28 @@ def get_matyas():
     return x_train, y_train, x_test, y_test
 
 
-def get_mnist():
+def get_mnist(small: bool = True):
     """Return the MNIST dataset after some data manipulation to allow a better training of the model."""
     (x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+    if small:
+        x_train = x_train.reshape(x_train.shape[0], 784)
+        y_train = y_train.reshape(y_train.shape[0], 1)
+        x_test = x_test.reshape(x_test.shape[0], 784)
+        y_test = y_test.reshape(y_test.shape[0], 1)
+
+        data_train = np.hstack((x_train, y_train))
+        data_test = np.hstack((x_test, y_test))
+
+        rndst = RandomState(27)
+        rndst.shuffle(data_train)
+        rndst.shuffle(data_test)
+
+        x_train = data_train[:2000, :-1]
+        y_train = data_train[:2000, -1]
+        x_test = data_test[:200, :-1]
+        y_test = data_test[:200, -1]
+
     x_train = x_train.reshape(x_train.shape[0], 1, 784)
     x_train = x_train.astype('float32')
     x_train /= 255
@@ -39,9 +58,46 @@ def get_mnist():
     return x_train, y_train, x_test, y_test
 
 
-def get_cifar10():
+def get_cifar10(small: bool = True):
     """Return the CIFAR10 dataset after some data manipulation to allow a better training of the model."""
-    (x_train, y_train), (x_test, y_test) = cifar10.load_data()
+    allx = list()
+    ally = list()
+
+    def unpickle(file):
+        with open(file, 'rb') as fo:
+            dictionary = pickle.load(fo, encoding='bytes')
+        return dictionary
+
+    files = ["data_batch_1", "data_batch_2", "data_batch_3", "data_batch_4", "data_batch_5"]
+    for i in files:
+        data = unpickle(f"Datasets\\cifar10\\{i}")
+        allx.append(data[b"data"])
+        ally.append(data[b"labels"])
+
+    x_train = np.concatenate(tuple(allx))
+    y_train = np.concatenate(tuple(ally))
+    test = unpickle("Datasets\\cifar10\\test_batch")
+    x_test = np.array(test[b"data"])
+    y_test = np.array(test[b"labels"])
+
+    if small:
+        x_train = x_train.reshape(x_train.shape[0], 3072)
+        y_train = y_train.reshape(y_train.shape[0], 1)
+        x_test = x_test.reshape(x_test.shape[0], 3072)
+        y_test = y_test.reshape(y_test.shape[0], 1)
+
+        data_train = np.hstack((x_train, y_train))
+        data_test = np.hstack((x_test, y_test))
+
+        rndst = RandomState(27)
+        rndst.shuffle(data_train)
+        rndst.shuffle(data_test)
+
+        x_train = data_train[:2000, :-1]
+        y_train = data_train[:2000, -1]
+        x_test = data_test[:200, :-1]
+        y_test = data_test[:200, -1]
+
     x_train = x_train.reshape(x_train.shape[0], 1, 3072)
     x_train = x_train.astype('float32')
     x_train /= 255
@@ -55,9 +111,46 @@ def get_cifar10():
     return x_train, y_train, x_test, y_test
 
 
-def get_cifar100():
+def get_cifar100(small: bool = True):
     """Return the CIFAR100 dataset after some data manipulation to allow a better training of the model."""
-    (x_train, y_train), (x_test, y_test) = cifar100.load_data(label_mode="fine")
+    allx = list()
+    ally = list()
+
+    def unpickle(file):
+        with open(file, 'rb') as fo:
+            dictionary = pickle.load(fo, encoding='bytes')
+        return dictionary
+
+    files = ["data_batch_1", "data_batch_2"]
+    for i in files:
+        data = unpickle(f"Datasets\\cifar100\\{i}")
+        allx.append(data[b"data"])
+        ally.append(data[b"fine_labels"])
+
+    x_train = np.concatenate(tuple(allx))
+    y_train = np.concatenate(tuple(ally))
+    test = unpickle("Datasets\\cifar100\\test_batch")
+    x_test = np.array(test[b"data"])
+    y_test = np.array(test[b"fine_labels"])
+
+    if small:
+        x_t = x_train.reshape(x_train.shape[0], 3072)
+        y_t = y_train.reshape(y_train.shape[0], 1)
+        x_te = x_test.reshape(x_test.shape[0], 3072)
+        y_te = y_test.reshape(y_test.shape[0], 1)
+
+        data_train = np.hstack((x_t, y_t))
+        data_test = np.hstack((x_te, y_te))
+
+        rndst = RandomState(27)
+        rndst.shuffle(data_train)
+        rndst.shuffle(data_test)
+
+        x_train = data_train[:2000, :-1]
+        y_train = data_train[:2000, -1]
+        x_test = data_test[:200, :-1]
+        y_test = data_test[:200, -1]
+
     x_train = x_train.reshape(x_train.shape[0], 1, 3072)
     x_train = x_train.astype('float32')
     x_train /= 255
@@ -74,7 +167,7 @@ def get_cifar100():
 def get_covertype():
     """Return the CoverType dataset after some data manipulation to allow a better training of the model."""
     scaler = MinMaxScaler()
-    arr = np.genfromtxt("covtype.csv", delimiter=",")
+    arr = np.genfromtxt("Datasets\\covtype.csv", delimiter=",")
     [x, y] = np.split(ary=arr, indices_or_sections=[-1], axis=1)
     x_train, y_train, x_test, y_test = splitting_function(x=x, y=y, train=0.8)
     x_train = scaler.fit_transform(x_train)

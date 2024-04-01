@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def MGD(gradient, weight, prev_weight, learning_rate: float = 0.001, momentum: float = 0.9):
+def MGD(gradient, weight, prev_weight, learning_rate: float, momentum: float):
     """It's a standard heavy ball approach, so it applies the gradient descend with momentum.
     If fixed_step is False, the learning rate will be divided by the norm of the gradient."""
 

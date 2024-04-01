@@ -53,10 +53,6 @@ class ELM:
         prev_error = np.inf
         samples = len(x)
         iteration = 0
-        if optimizer == DSG:
-            subg = True
-        else:
-            subg = False
 
         for epoch in range(epochs):
             start_time = time.time()
@@ -80,8 +76,7 @@ class ELM:
                                           y_pred=output,
                                           weight=self.layers[-1].weight,
                                           inputs=self.layers[-1].inputs,
-                                          lasso=lasso,
-                                          subgradient=subg)
+                                          lasso=lasso)
 
                 params["fx"] = act_err
                 self.layers[-1].weights_update(gradient=grad,

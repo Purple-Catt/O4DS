@@ -3,10 +3,10 @@ from optimizers import *
 from network import ELM
 import datasets
 
-var = True
+var = False
 grad = True
-units, mid_out, output_dim = datasets.get_dim("matyas")
-x_train, y_train, x_test, y_test = datasets.get_matyas()
+units, mid_out, output_dim = datasets.get_dim("cifar100")
+x_train, y_train, x_test, y_test = datasets.get_cifar100()
 
 if var:
     elm = ELM(
@@ -28,18 +28,18 @@ if var:
     if grad:
         history = elm.fit(x_train, y_train,
                           x_test, y_test,
-                          epochs=400,
+                          epochs=10000,
                           optimizer=MGD,
-                          lasso=0.00001,
+                          lasso=0.000001,
                           history=True,
-                          patience=300,
+                          patience=100,
                           verbose=1,
-                          learning_rate=0.0002,
-                          momentum=0.7)
+                          learning_rate=0.000001,
+                          momentum=0.9)
 
     else:
-        history = elm.fit(x_train[:1000], y_train[:1000],
-                          x_test[:200], y_test[:200],
+        history = elm.fit(x_train, y_train,
+                          x_test, y_test,
                           epochs=1000,
                           optimizer=DSG,
                           lasso=0.00001,
@@ -55,5 +55,5 @@ if var:
     learning_curve(history=history)
 
 else:
-    gridsearch_mgd(x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test,
-                   input_dim=units, output_dim=output_dim, mid_dim=mid_out)
+    gridsearch(x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test,
+               input_dim=units, output_dim=output_dim, epochs=100, gs_type="mgd", lasso=0.0000001, mid_dim=mid_out)

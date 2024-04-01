@@ -15,8 +15,8 @@ class Layer:
             *output_dim*: the number of _output units\n
             *weight_initializer*: *str* between 'std' for Standard Normal, 'xavier' for Normalized Xavier
             or 'he' for He Normal.\n
-            *_activation*: *str* between 'tanh' for hyperbolic tangent or 'sigm' for sigmoidal function. Default is
-            *None*, so no _activation function is used."""
+            *activation*: *str* between 'tanh' for hyperbolic tangent or 'sigm' for sigmoidal function. Default is
+            *None*, so no activation function is used."""
 
         self.name = name
         if weight_initializer == "std":
