@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def MGD(gradient, weight, prev_weight, learning_rate: float, momentum: float):
+def mgd(gradient, weight, prev_weight, learning_rate: float, momentum: float):
     """It's a standard heavy ball approach, so it applies the gradient descend with momentum.
     If fixed_step is False, the learning rate will be divided by the norm of the gradient."""
 
@@ -10,7 +10,7 @@ def MGD(gradient, weight, prev_weight, learning_rate: float, momentum: float):
     return new_weight, weight
 
 
-def DSG(subgradient, weight, lasso, gamma, R, rho, r, delta, beta, fx, f_ref, f_bar, prev_d):
+def dsg(subgradient, weight, lasso, gamma, R, rho, r, delta, beta, fx, f_ref, f_bar, prev_d):
     def threshold_function(x, lamb):
         return np.where(x > 0, 1, -1) * np.greater(np.abs(x) - lamb, 0).astype(np.float64)
 

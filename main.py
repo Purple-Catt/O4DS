@@ -1,12 +1,15 @@
+import numpy as np
+import pandas as pd
 from functions import *
 from optimizers import *
 from network import ELM
 import datasets
 
-var = False
+var = True
 grad = True
-units, mid_out, output_dim = datasets.get_dim("cifar100")
-x_train, y_train, x_test, y_test = datasets.get_cifar100()
+units, mid_out, output_dim = datasets.get_dim("mnist")
+x_train, y_train, x_test, y_test = datasets.get_mnist(True)
+# matrix = np.array(pd.read_csv("03-hidden_matrix.csv", header=None))
 
 if var:
     elm = ELM(
@@ -26,23 +29,24 @@ if var:
         loss=mse
     )
     if grad:
-        history = elm.fit(x_train, y_train,
-                          x_test, y_test,
-                          epochs=10000,
-                          optimizer=MGD,
-                          lasso=0.000001,
+        history = elm.fit(x=x_train, y=y_train,
+                          x_test=x_test, y_test=y_test,
+                          epochs=1000000,
+                          optimizer=mgd,
+                          lasso=0.0000001,
                           history=True,
-                          patience=100,
+                          patience=10,
+                          loss_evaluation="train",
                           verbose=1,
                           learning_rate=0.000001,
                           momentum=0.9)
 
     else:
-        history = elm.fit(x_train, y_train,
-                          x_test, y_test,
+        history = elm.fit(x=x_train, y=y_train,
+                          x_test=x_test, y_test=y_test,
                           epochs=1000,
-                          optimizer=DSG,
-                          lasso=0.00001,
+                          optimizer=dsg,
+                          lasso=0.000001,
                           history=True,
                           patience=3,
                           verbose=2,
@@ -53,6 +57,7 @@ if var:
                           beta=0.8)
 
     learning_curve(history=history)
+    pd.DataFrame(elm.get_weight).to_csv("03-hidden_matrix.csv", header=False, index=False)
 
 else:
     gridsearch(x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test,

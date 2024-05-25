@@ -164,13 +164,32 @@ def get_cifar100(small: bool = True):
     return x_train, y_train, x_test, y_test
 
 
-def get_covertype():
+def get_covertype(small: bool = True):
     """Return the CoverType dataset after some data manipulation to allow a better training of the model."""
     scaler = MinMaxScaler()
     arr = np.genfromtxt("Datasets\\covtype.csv", delimiter=",")
     [x, y] = np.split(ary=arr, indices_or_sections=[-1], axis=1)
     x_train, y_train, x_test, y_test = splitting_function(x=x, y=y, train=0.8)
     x_train = scaler.fit_transform(x_train)
+
+    if small:
+        x_t = x_train.reshape(x_train.shape[0], 54)
+        y_t = y_train.reshape(y_train.shape[0], 1)
+        x_te = x_test.reshape(x_test.shape[0], 54)
+        y_te = y_test.reshape(y_test.shape[0], 1)
+
+        data_train = np.hstack((x_t, y_t))
+        data_test = np.hstack((x_te, y_te))
+
+        rndst = RandomState(27)
+        rndst.shuffle(data_train)
+        rndst.shuffle(data_test)
+
+        x_train = data_train[:2000, :-1]
+        y_train = data_train[:2000, -1]
+        x_test = data_test[:200, :-1]
+        y_test = data_test[:200, -1]
+
     x_train = x_train.reshape(x_train.shape[0], 1, 54)
     y_train = y_train - 1
     y_train = to_categorical(y_train)

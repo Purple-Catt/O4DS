@@ -168,7 +168,7 @@ def gridsearch(x_train: np.ndarray,
             history = model.fit(x_train, y_train,
                                 x_test, y_test,
                                 epochs=epochs,
-                                optimizer=MGD,
+                                optimizer=mgd,
                                 lasso=lasso,
                                 history=True,
                                 patience=patience,
@@ -204,7 +204,7 @@ def gridsearch(x_train: np.ndarray,
             history = model.fit(x_train, y_train,
                                 x_test, y_test,
                                 epochs=epochs,
-                                optimizer=MGD,
+                                optimizer=mgd,
                                 lasso=lasso,
                                 learning_rate=lr,
                                 history=True,
@@ -227,13 +227,13 @@ def gridsearch(x_train: np.ndarray,
         mid_dim = kwargs.get("mid_dim")
         learning_rate = np.arange(start=0.0000001, stop=0.0000002, step=0.0000005)
         learning_rate = [float(round(i, 8)) for i in list(learning_rate)]
-        learning_rate = [0.0000001]
+        learning_rate = [0.0001, 0.001]
 
         momentum = np.arange(start=0.4, stop=1.0, step=0.1)
         momentum = [float(round(i, 1)) for i in list(momentum)]
 
         n_comb = len(learning_rate) * len(momentum)
-        print(f"{n_comb} parameters combinations needed to compute the gridsearch")
+        print(f"{n_comb} parameters combination(s) needed to compute the gridsearch")
 
         for lr in learning_rate:
             for mom in momentum:
@@ -242,12 +242,12 @@ def gridsearch(x_train: np.ndarray,
                 history = model.fit(x_train, y_train,
                                     x_test, y_test,
                                     epochs=epochs,
-                                    optimizer=MGD,
+                                    optimizer=mgd,
                                     lasso=lasso,
                                     learning_rate=lr,
                                     history=True,
                                     patience=patience,
-                                    verbose=1,
+                                    verbose=0,
                                     momentum=mom)
 
                 metrics = dict(learning_rate=lr,

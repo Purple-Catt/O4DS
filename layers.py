@@ -1,33 +1,43 @@
 from numpy import matmul
-from numpy.random import standard_normal, normal, uniform, seed
+from numpy.random import PCG64, SeedSequence, Generator
 from optimizers import *
-
-# Set a random seed for replicability purposes
-seed(5)
 
 
 class Layer:
 
     def __init__(self, name: str, input_dim: int, output_dim: int,
-                 weight_initializer: str, activation=None, trainable: bool = False):
-        """Parameters:\n
-            *input_dim*: the number of input units (neurons) of the layer\n
-            *output_dim*: the number of _output units\n
-            *weight_initializer*: *str* between 'std' for Standard Normal, 'xavier' for Normalized Xavier
-            or 'he' for He Normal.\n
-            *activation*: *str* between 'tanh' for hyperbolic tangent or 'sigm' for sigmoidal function. Default is
-            *None*, so no activation function is used."""
+                 weight_initializer: str | np.ndarray, activation=None,
+                 trainable: bool = False, random_state: int = 42):
+        """Class to create layers into an ELM.
+        Parameters:
+            name: name of the layer
+            input_dim: the number of input units (neurons) of the layer
+            output_dim: the number of _output units
+            weight_initializer: *str* between 'std' for Standard Normal, 'xavier' for Normalized Xavier
+            or 'he' for He Normal, if numpy array is given, it'll be used as weight matrix
+            activation: *str* between 'tanh' for hyperbolic tangent or 'sigm' for sigmoidal function. Default is *None*,
+                so no activation function is used
+            trainable: Default False. If True, the layer's weights are trained during the optimization process
+            random_state: random seed to allow replicability."""
 
         self.name = name
-        if weight_initializer == "std":
-            self._weight = standard_normal(size=(input_dim, output_dim))
+        self.rng = Generator(PCG64(SeedSequence(random_state)))
+
+        if isinstance(weight_initializer, np.ndarray):
+            self._weight = weight_initializer
+
+        elif weight_initializer == "std":
+            self._weight = self.rng.standard_normal(size=(input_dim, output_dim))
+
         elif weight_initializer == "xavier":
-            bound = (np.sqrt(6)/np.sqrt(input_dim + output_dim))
-            self._weight = uniform(low=-bound, high=bound, size=(input_dim, output_dim))
+            bound = (np.sqrt(6) / np.sqrt(input_dim + output_dim))
+            self._weight = self.rng.uniform(low=-bound, high=bound, size=(input_dim, output_dim))
+
         elif weight_initializer == "he":
-            self._weight = normal(loc=0.0, scale=np.sqrt(2 / input_dim), size=(input_dim, output_dim))
+            self._weight = self.rng.normal(loc=0.0, scale=np.sqrt(2 / input_dim), size=(input_dim, output_dim))
+
         else:
-            raise ValueError(f"*str* between 'std' and 'xavier' expected, got {weight_initializer} instead.")
+            raise ValueError(f"*str* between 'he', 'std' and 'xavier' expected, got {weight_initializer} instead.")
 
         self._trainable = trainable
         self._activation = activation
@@ -52,7 +62,7 @@ class Layer:
         if self._trainable:
             if self._activation is None:
 
-                if optimizer == MGD:
+                if optimizer == mgd:
 
                     if self.__additional_parameters.get("prev_weight") is None:
                         self.__additional_parameters["prev_weight"] = self._weight.copy()
@@ -65,7 +75,7 @@ class Layer:
                                   momentum=kwargs["momentum"]
                                   ))
 
-                elif optimizer == DSG:
+                elif optimizer == dsg:
 
                     # Initialize the parameters before the algorithm runs for the first time
                     if self.__additional_parameters == {}:
