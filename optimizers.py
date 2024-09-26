@@ -10,10 +10,11 @@ def mgd(gradient, weight, prev_weight, learning_rate: float, momentum: float):
     return new_weight, weight
 
 
-def dsg(subgradient, weight, lasso, gamma, R, rho, r, delta, beta, fx, f_ref, f_bar, prev_d):
+def dsg(subgradient, weight, lasso, R, rho, r, delta, beta, fx, f_ref, f_bar, prev_d):
     def threshold_function(x, lamb):
         return np.where(x > 0, 1, -1) * np.greater(np.abs(x) - lamb, 0).astype(np.float64)
 
+    gamma = np.subtract(np.subtract(f_ref, f_bar), delta)
     d = np.add(gamma * subgradient, (1 - gamma) * prev_d)
     prev_d = d
     alpha = beta * (np.subtract(fx, np.subtract(f_ref, delta)) / (np.linalg.norm(d) ** 2))
@@ -23,7 +24,6 @@ def dsg(subgradient, weight, lasso, gamma, R, rho, r, delta, beta, fx, f_ref, f_
     if fx <= (f_ref - (delta / 2)):  # Sufficient descent direction
         f_ref = f_bar
         r = 0
-        exit()
 
     elif r > R:  # Target infeasibility condition
         delta = delta * rho

@@ -1,11 +1,12 @@
 import time
 import functions
 from optimizers import *
+from numpy.linalg import norm
 
 
 class ELM:
-    """This function builds an extreme learning machine with one hidden layer with a fixed _weight matrix
-    and an _output layer with a _trainable _weight matrix."""
+    """This function builds an extreme learning machine with one hidden layer with a fixed weight matrix
+    and an output layer with a trainable weight matrix."""
     def __init__(self, layers: list, loss):
         self.layers = layers
         self.loss = loss
@@ -24,7 +25,7 @@ class ELM:
 
     def fit(self, x: np.ndarray, y: np.ndarray, epochs: int, optimizer, lasso,
             x_test: np.ndarray = None, y_test: np.ndarray = None,
-            history: bool = True, patience: int = None,
+            history: bool = True, patience: int = None, optimal_value: float = 0.0,
             loss_evaluation: str = "val", verbose: int = 1,
             **kwargs):
         """This is the main method of this class, it computes the entire training process with an *online learning*
@@ -43,7 +44,9 @@ class ELM:
             history: if True a history dictionary containing all the (training and validation) loss values and epochs is
                 returned
             patience: Default *None*. If a value is given, an earlystopping callback is added with the given parameter
-            loss_evaluation: wether counting patience on validation or training loss, string between 'val' and 'train'
+            optimal_value: Default 0.0. It's used to compute the relative gap
+            loss_evaluation: wether counting patience on validation/training loss or relative gap, string between 'val',
+            'train' and 'gap'
             verbose: Integer between 0, 1, 2 where 0 is silence, 1 print losses after each epoch, 2 print losses after
                 each iteration
         """
@@ -61,6 +64,9 @@ class ELM:
             start_time = time.time()
             act_epoch += 1
             err_tr = 0.0
+            rel_gap = 0.0
+            norm_grad = 0.0
+            act_sample = 0
 
             for sample in range(samples):
                 # Forward propagation
@@ -86,12 +92,24 @@ class ELM:
                                                optimizer=optimizer,
                                                **params)
 
+                norm_grad = norm(grad)
+                # Leave the innest loop if the norm of the gradient is lower than a defined threshold
+                if norm_grad < 0.00000001:
+                    act_sample = sample + 1
+                    break
+
                 iteration += 1
                 if verbose > 1:
-                    print("iter=%d   error=%f" % (iteration, act_err))
+                    print("iter=%d   error=%f   |df(x)/dx|=%.8f" % (iteration, act_err, norm_grad))
 
+            if norm_grad < 0.00000001:
+                print("|df(x)/dx| lower than the threshold, EarlyStopping intervened")
+                print("epoch %d/%d   train_error=%.10f   "
+                      "rel_gap=%.10f   |df(x)/dx|=%.8f" % (epoch + 1, epochs, err_tr/act_sample,
+                                                           abs((err_tr/act_sample) - optimal_value), norm_grad))
+                break
+            # Forward propagation for validation set
             if x_test is not None:
-                # Forward propagation for validation set
                 err_val = 0
                 val_samples = len(x_test)
                 for val_sample in range(val_samples):
@@ -111,25 +129,31 @@ class ELM:
             err_tr /= samples
             err_tr_list.append(err_tr)
 
+            rel_gap = abs(err_tr - optimal_value)
+
             if x_test is not None:
                 if verbose > 0:
-                    print("epoch %d/%d   train_error=%.10f   val_error=%f   time: %.3f s" % (epoch + 1, epochs, err_tr,
-                                                                                             err_val,
-                                                                                             time.time() - start_time))
+                    print("epoch %d/%d   train_error=%.10f   val_error=%f   "
+                          "rel_gap=%.10f   time: %.3f s" % (epoch + 1, epochs, err_tr, err_val,
+                                                            rel_gap, time.time() - start_time))
 
             else:
                 if verbose > 0:
-                    print("epoch %d/%d   train_error=%.10f   time: %.3f s" % (epoch + 1, epochs, err_tr,
-                                                                              time.time() - start_time))
+                    print("epoch %d/%d   train_error=%.10f   rel_gap=%.10f   time: %.3f s" % (epoch + 1, epochs, err_tr,
+                                                                                              rel_gap,
+                                                                                              time.time() - start_time))
 
             # Early stopping
             if isinstance(patience, int):
-                # Wether refer to the training of validation error to count the patience
+                # Wether refer to the training/validation error or relative gap to count the patience
                 if loss_evaluation == "val":
                     patience_error = err_val
 
                 elif loss_evaluation == "train":
                     patience_error = err_tr
+
+                elif loss_evaluation == "gap":
+                    patience_error = rel_gap
 
                 else:
                     raise ValueError(f"str between 'val' and 'train' expected, got {loss_evaluation} instead.")
@@ -137,16 +161,23 @@ class ELM:
                 if patience_error >= prev_error:
                     count += 1
 
-                if prev_error - patience_error < 0.000000001:
+                elif prev_error - patience_error < 0.000000001:
                     count += 1
 
-                if count == patience:
+                if count >= patience:
                     print(f"EarlyStopping intervened on epoch {epoch}")
-                    print(f"Learning rate decreased from {params['learning_rate']} to {params['learning_rate'] / 5}")
-                    params["learning_rate"] /= 5
-                    if input("Continue? [Y/n]").lower() == "n":
+                    # An optional boolean parameter named decreasing can be defined to allow a semiautomatic non-fixed
+                    # learning rate approach
+                    if params.get("decreasing", False):
+                        print(f"Learning rate decreased from {params['learning_rate']} "
+                              f"to {params['learning_rate'] / 5}")
+                        params["learning_rate"] /= 5
+                        if input("Continue? [Y/n]").lower() == "n":
+                            break
+                        count = 0
+
+                    else:
                         break
-                    count = 0
                 prev_error = patience_error
 
         if history:

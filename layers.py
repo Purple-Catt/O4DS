@@ -89,26 +89,20 @@ class Layer:
                     else:
                         self.__additional_parameters["fx"] = kwargs["fx"]
 
-                    (self._weight, r, delta, f_ref,
-                     f_bar, prev_d) = optimizer(subgradient=gradient,
-                                                weight=self._weight,
-                                                lasso=self.__additional_parameters["lasso"],
-                                                gamma=self.__additional_parameters["gamma"],
-                                                R=self.__additional_parameters["R"],
-                                                rho=self.__additional_parameters["rho"],
-                                                r=self.__additional_parameters["r"],
-                                                delta=self.__additional_parameters["delta"],
-                                                beta=self.__additional_parameters["beta"],
-                                                fx=self.__additional_parameters["fx"],
-                                                f_ref=self.__additional_parameters["f_ref"],
-                                                f_bar=self.__additional_parameters["f_bar"],
-                                                prev_d=self.__additional_parameters["prev_d"])
-
-                    self.__additional_parameters["r"] = r
-                    self.__additional_parameters["delta"] = delta
-                    self.__additional_parameters["f_ref"] = f_ref
-                    self.__additional_parameters["f_bar"] = f_bar
-                    self.__additional_parameters["prev_d"] = prev_d
+                    (self._weight, self.__additional_parameters["r"], self.__additional_parameters["delta"],
+                     self.__additional_parameters["f_ref"], self.__additional_parameters["f_bar"],
+                     self.__additional_parameters["prev_d"]) = optimizer(subgradient=gradient,
+                                                                         weight=self._weight,
+                                                                         lasso=self.__additional_parameters["lasso"],
+                                                                         R=self.__additional_parameters["R"],
+                                                                         rho=self.__additional_parameters["rho"],
+                                                                         r=self.__additional_parameters["r"],
+                                                                         delta=self.__additional_parameters["delta"],
+                                                                         beta=self.__additional_parameters["beta"],
+                                                                         fx=self.__additional_parameters["fx"],
+                                                                         f_ref=self.__additional_parameters["f_ref"],
+                                                                         f_bar=self.__additional_parameters["f_bar"],
+                                                                         prev_d=self.__additional_parameters["prev_d"])
 
                 else:
                     raise ValueError(f"One between MGD and DSG expected, got {optimizer} instead.")

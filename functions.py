@@ -126,7 +126,7 @@ def gridsearch(x_train: np.ndarray,
                input_dim: int,
                output_dim: int,
                epochs: int = 100,
-               patience: int = 100,
+               patience: int = 5,
                gs_type: str = "architecture",
                **kwargs):
     """This function compute the gridsearch over the given model to find the optimal parameters. The specific kind of
@@ -209,7 +209,7 @@ def gridsearch(x_train: np.ndarray,
                                 learning_rate=lr,
                                 history=True,
                                 patience=patience,
-                                verbose=1,
+                                verbose=0,
                                 momentum=mom)
 
             metrics = dict(lasso=lasso,
@@ -225,12 +225,13 @@ def gridsearch(x_train: np.ndarray,
     elif gs_type == "mgd":
         lasso = kwargs.get("lasso")
         mid_dim = kwargs.get("mid_dim")
-        learning_rate = np.arange(start=0.0000001, stop=0.0000002, step=0.0000005)
+        learning_rate = np.arange(start=0.000001, stop=0.00001, step=0.000002)
         learning_rate = [float(round(i, 8)) for i in list(learning_rate)]
-        learning_rate = [0.0001, 0.001]
+        learning_rate = [0.00000005]
 
         momentum = np.arange(start=0.4, stop=1.0, step=0.1)
         momentum = [float(round(i, 1)) for i in list(momentum)]
+        momentum = [0.2]
 
         n_comb = len(learning_rate) * len(momentum)
         print(f"{n_comb} parameters combination(s) needed to compute the gridsearch")
@@ -240,14 +241,14 @@ def gridsearch(x_train: np.ndarray,
                 model = get_model(input_dim=input_dim, mid_dim=mid_dim, output_dim=output_dim)
 
                 history = model.fit(x_train, y_train,
-                                    x_test, y_test,
+                                    x_test=x_test, y_test=y_test,
                                     epochs=epochs,
                                     optimizer=mgd,
                                     lasso=lasso,
                                     learning_rate=lr,
                                     history=True,
                                     patience=patience,
-                                    verbose=0,
+                                    verbose=1,
                                     momentum=mom)
 
                 metrics = dict(learning_rate=lr,
@@ -262,7 +263,49 @@ def gridsearch(x_train: np.ndarray,
                 print(f"Tested model --> alpha={lr}, Beta={mom}, Val_loss={vl}, train_loss={trl}")
 
     elif gs_type == "dsg":
-        raise NotImplementedError("GridSearch for DSG algorithm hasn't been implemented yet.")
+        lasso = kwargs.get("lasso")
+        mid_dim = kwargs.get("mid_dim")
+
+        beta = np.arange(start=0.1, stop=1.0, step=0.2)
+        beta = [float(round(i, 1)) for i in list(beta)]
+
+        rho = [0.85, 0.9, 0.95, 0.99]
+
+        delta_0 = [0.001, 0.0001, 0.00001, 0.000001]
+
+        R = [1]
+
+        for b in beta:
+            for r in rho:
+                for d in delta_0:
+                    for r_big in R:
+                        model = get_model(input_dim=input_dim, mid_dim=mid_dim, output_dim=output_dim)
+
+                        history = model.fit(x_train, y_train,
+                                            x_test=x_test, y_test=y_test,
+                                            epochs=epochs,
+                                            optimizer=dsg,
+                                            lasso=lasso,
+                                            history=True,
+                                            patience=patience,
+                                            verbose=1,
+                                            beta=b,
+                                            rho=r,
+                                            delta=d,
+                                            R=r_big)
+
+                        metrics = dict(beta=b,
+                                       rho=r,
+                                       delta=d,
+                                       R=r_big,
+                                       val_loss=history["val_loss"][-1],
+                                       train_loss=history["loss"][-1])
+                        evaluation.append(metrics)
+
+                        vl = history["val_loss"][-1]
+                        trl = history["loss"][-1]
+                        print(f"Tested model --> beta={b}, rho={r}, delta0={d}, R={r_big} val_loss={vl}, "
+                              f"train_loss={trl}")
 
     else:
         raise ValueError(f"String between 'architecture', 'lasso', 'mgd and 'dsg' expected, got {gs_type} instead.")
